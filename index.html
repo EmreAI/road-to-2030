@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Road to 2030</title>
+<meta name="description" content="A data visualization project: six World Cups, 208 squads and why Portugal has yet to reach a final.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFFFFF; --soft:#F6F7F9; --ink:#0B0D12; --ink2:#3A404D; --muted:#6B7280; --faint:#9AA1AD;
+  --line:#E6E8EC; --grid:#EEF0F3; --bar:#D6DAE1; --bar2:#8E96A4;
+  --red:#D0122E; --red-soft:#FCEBEE; --gold:#D29A12; --gold-soft:#FBF3DE;
+  --head:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+  --nav:60px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--head);letter-spacing:-.03em;margin:0;font-weight:700}
+a{color:inherit}
+.wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 32px}
+.label{font:600 12px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.label b{color:var(--red);font-weight:700;margin-right:10px}
+
+/* every scene is exactly one screen: the tour and the Next button scroll to its top */
+.scene{min-height:100svh;padding:calc(var(--nav) + 20px) 0 84px;display:flex;align-items:center;position:relative}
+.scene > .wrap{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.scene.in > .wrap{opacity:1;transform:none}
+
+/* nav */
+.nav{position:fixed;inset:0 0 auto 0;z-index:30;height:var(--nav);transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+.nav.solid{background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;height:100%}
+.nav .brand{font:700 15px var(--head);letter-spacing:-.01em;text-decoration:none}
+.nav .brand span{color:var(--gold)}
+.nav ul{display:flex;gap:26px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav ul a{font-size:13.5px;font-weight:500;color:var(--ink2);text-decoration:none;cursor:pointer}
+.nav ul a:hover{color:var(--ink)}
+.bar-top{position:fixed;top:0;left:0;height:3px;background:var(--gold);z-index:31;width:0;transition:width .3s}
+
+/* opening */
+.opening .wrap{display:grid;grid-template-columns:minmax(300px,.8fr) 1.2fr;align-items:center;gap:24px;max-width:1320px}
+.opening .kick{font:600 12px var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.opening h1{font-size:clamp(58px,8.4vw,128px);line-height:.88;letter-spacing:-.055em;margin-top:16px}
+.opening h1 span{display:block;font-size:.26em;letter-spacing:.3em;font-weight:600;color:var(--muted);margin:.55em 0 .4em .2em}
+.opening h1 em{font-style:normal;background:linear-gradient(180deg,#E9B53A,#B57F06);-webkit-background-clip:text;background-clip:text;color:transparent}
+.opening p{max-width:440px;margin:24px 0 0;font-size:clamp(16px,1.4vw,18px);color:var(--ink2)}
+.opening .how{display:flex;flex-direction:column;gap:8px;margin-top:26px;font-size:13px;color:var(--muted)}
+.opening .how span{display:flex;align-items:center;gap:10px}
+.opening .how i{flex:none;display:inline-block;border-radius:50%}
+.radial-wrap{position:relative;width:100%;max-width:min(780px,calc(100svh - 200px));justify-self:center;aspect-ratio:1}
+#radial{width:100%;height:100%;display:block;overflow:visible}
+#radial .ring{fill:none;stroke:var(--grid);stroke-width:1}
+#radial .ring-lbl{fill:var(--faint);font:600 10.5px var(--body);letter-spacing:.06em}
+#radial .yr-lbl{fill:var(--ink);font:700 15px var(--head)}
+#radial .yr-sub{fill:var(--muted);font:500 11px var(--body)}
+#radial .sq{stroke:#fff;stroke-width:1.5}
+#radial .sq:hover{stroke:var(--ink);stroke-width:2}
+#radial .por{animation:pulse 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{50%{transform:scale(1.25)}}
+.radial-center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;text-align:center}
+.radial-center .n{font:700 clamp(34px,4.4vw,58px)/1 var(--head);letter-spacing:-.04em}
+.radial-center .l{font-size:12.5px;color:var(--muted);margin-top:6px;letter-spacing:.04em}
+
+/* tour button */
+.tour{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;display:inline-flex;align-items:center;gap:10px;border:0;cursor:pointer;background:var(--ink);color:#fff;font:600 14px var(--body);padding:12px 14px 12px 20px;border-radius:999px;box-shadow:0 10px 30px rgba(10,13,18,.22);white-space:nowrap;transition:transform .2s}
+.tour:hover{transform:translateX(-50%) translateY(-2px)}
+.tour .arr{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
+.tour .arr svg{transition:transform .3s}
+.tour.idle .arr{animation:bob 1.8s ease-in-out infinite}
+.tour.up .arr svg{transform:rotate(180deg)}
+@keyframes bob{50%{transform:translateY(3px)}}
+.tour .sub{font-weight:500;color:#9AA3B4;font-size:12.5px}
+.tour:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.tour.playing{background:#1A1F2A}
+.tour .ring{position:relative;width:26px;height:26px}
+.tour .ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+
+/* question scenes */
+.q-scene{text-align:center;overflow:hidden}
+.q-scene .wrap{max-width:980px}
+.q-scene .qmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.6);font:700 min(70vw,640px)/1 var(--head);color:var(--soft);opacity:0;transition:transform 1.2s cubic-bezier(.2,.8,.2,1),opacity 1.2s;z-index:-1;user-select:none}
+.q-scene.in .qmark{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.q-scene .num{font:600 12px var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--red)}
+.q-scene h2{font-size:clamp(34px,5.4vw,72px);line-height:1.04;letter-spacing:-.04em;margin-top:18px}
+.q-scene h2 .w{display:inline-block;opacity:0;transform:translateY(.5em);filter:blur(6px);transition:opacity .6s,transform .6s cubic-bezier(.2,.8,.2,1),filter .6s}
+.q-scene.in h2 .w{opacity:1;transform:none;filter:none}
+.q-scene h2 em{font-style:normal;color:var(--red)}
+.q-scene p{color:var(--muted);font-size:17px;margin:22px auto 0;max-width:560px;opacity:0;transition:opacity .8s 1s}
+.q-scene.in p{opacity:1}
+
+/* bracket */
+.bk-head{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between}
+.bk-head h2{font-size:clamp(28px,3.4vw,42px);margin-top:12px}
+.ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:4px;gap:2px}
+.seg button{appearance:none;border:0;background:transparent;font:600 14px var(--body);color:var(--muted);padding:9px 16px;border-radius:10px;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(10,13,18,.08),0 2px 8px rgba(10,13,18,.06)}
+.play{appearance:none;border:0;width:46px;height:46px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;cursor:pointer;transition:transform .15s}
+.play:hover{transform:scale(1.05)}
+.play svg{width:14px;height:14px}
+.progress{height:2px;background:var(--line);border-radius:2px;margin-top:16px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--ink)}
+.seg button:focus-visible,.play:focus-visible,.tog button:focus-visible,.chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.bk-body{display:grid;grid-template-columns:1fr 250px;gap:28px;margin-top:18px;align-items:start}
+#bracket{width:100%;height:auto;max-height:calc(100svh - 300px);display:block}
+#bracket .box rect{fill:#fff;stroke:#DADDE3;stroke-width:1.2}
+#bracket .box text{fill:var(--ink);font:700 13px var(--body);letter-spacing:.03em}
+#bracket .box .rk{fill:var(--faint);font:600 10.5px var(--body);letter-spacing:0}
+#bracket .box.win rect{stroke:var(--gold);stroke-width:1.6}
+#bracket .box.champ rect{fill:var(--gold);stroke:var(--gold)}
+#bracket .box.champ text,#bracket .box.champ .rk{fill:#fff}
+#bracket .box.por rect{fill:var(--red);stroke:var(--red)}
+#bracket .box.por text,#bracket .box.por .rk{fill:#fff}
+#bracket .link{fill:none;stroke:#D9DCE2;stroke-width:1.3}
+#bracket .link.win{stroke:var(--gold);stroke-width:2.4;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw .5s ease forwards;animation-delay:var(--d)}
+@keyframes draw{to{stroke-dashoffset:0}}
+#bracket .fade{opacity:0;animation:fadein .45s ease forwards;animation-delay:var(--d)}
+@keyframes fadein{to{opacity:1}}
+#bracket .out-tag rect{fill:var(--red-soft)}
+#bracket .out-tag text{fill:var(--red);font:700 10px var(--body);letter-spacing:.1em}
+#bracket .final-line{stroke:var(--gold);stroke-width:2.4}
+#bracket .final-lbl{fill:var(--gold);font:700 11px var(--body);letter-spacing:.18em}
+#bracket .final-score{fill:var(--ink);font:700 15px var(--head)}
+#bracket .ch-lbl{fill:var(--muted);font:600 11px var(--body);letter-spacing:.16em}
+#bracket .ch-name{fill:var(--ink);font:700 34px var(--head);letter-spacing:-.02em}
+#bracket .ch-meta{fill:var(--ink2);font:500 13px var(--body)}
+.side{display:flex;flex-direction:column;gap:12px}
+.por-card{border:1px solid var(--line);border-left:3px solid var(--red);border-radius:12px;padding:16px 18px;background:#fff;transition:background .3s}
+.por-card .k{font:700 11px var(--body);letter-spacing:.14em;color:var(--red);text-transform:uppercase}
+.por-card .big{font:700 22px/1.15 var(--head);margin:8px 0 6px;letter-spacing:-.02em}
+.por-card .meta{font-size:13.5px;color:var(--ink2)}
+.por-card.group{background:var(--red-soft)}
+.mini{border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.mini .k{font:600 11px var(--body);letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.mini .runs{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:10px}
+.mini .runs div{text-align:center;font-size:11px;color:var(--muted)}
+.mini .runs i{display:block;height:46px;border-radius:5px;background:var(--grid);position:relative;margin-bottom:5px;overflow:hidden}
+.mini .runs i b{position:absolute;left:0;right:0;bottom:0;background:var(--bar2);border-radius:5px;transition:height .4s}
+.mini .runs .on i b{background:var(--red)}
+.mini .scale{font-size:10.5px;color:var(--faint);margin-top:6px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* method */
+.method h2,.chart-scene h2{font-size:clamp(28px,3.6vw,46px);line-height:1.06;margin-top:12px;max-width:920px}
+.method-grid{display:grid;grid-template-columns:1fr 110px 1.05fr;margin-top:36px;align-items:center}
+.sources{display:flex;flex-direction:column;gap:12px}
+.srcard{display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-decoration:none;background:#fff;transition:border-color .2s,transform .2s,box-shadow .2s;opacity:0;transform:translateX(-14px)}
+.in .srcard{opacity:1;transform:none;transition:opacity .5s var(--dl),transform .5s var(--dl),border-color .2s,box-shadow .2s}
+a.srcard:hover{border-color:var(--ink);box-shadow:0 6px 18px rgba(10,13,18,.06)}
+.srcard .id{width:40px;height:40px;border-radius:10px;background:var(--soft);display:grid;place-items:center;font:700 14px var(--head)}
+.srcard b{display:block;font-size:15px}
+.srcard span{display:block;font-size:12.5px;color:var(--muted)}
+.srcard .go{color:var(--faint)}
+.srcard .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.srcard .links a{font-size:11.5px;font-weight:600;text-decoration:none;color:var(--ink2);background:var(--soft);padding:3px 8px;border-radius:6px}
+.srcard .links a:hover{background:var(--ink);color:#fff}
+.srcard .links a.warn{color:var(--red);background:var(--red-soft)}
+.flow{width:100%;height:100%;min-height:340px}
+.flow path{fill:none;stroke:var(--line);stroke-width:1.5}
+.flow path.pulse{stroke:var(--gold);stroke-width:2;stroke-dasharray:6 14;animation:flow 1.4s linear infinite;opacity:0;transition:opacity .6s .6s}
+.in .flow path.pulse{opacity:1}
+@keyframes flow{to{stroke-dashoffset:-40}}
+.py{border-radius:22px;background:var(--ink);color:#fff;padding:32px 32px 26px;position:relative;overflow:hidden}
+.py::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(closest-side,rgba(210,154,18,.35),transparent);pointer-events:none}
+.py .k{font:600 12px var(--body);letter-spacing:.14em;color:#9AA3B4;text-transform:uppercase}
+.py h3{font-size:clamp(54px,6.4vw,88px);line-height:.95;letter-spacing:-.05em;margin:8px 0 20px}
+.py ul{list-style:none;margin:0;padding:0;display:grid;gap:11px}
+.py li{display:grid;grid-template-columns:118px 1fr;gap:12px;font-size:14px;color:#C9D0DC;opacity:0;transform:translateX(12px);transition:opacity .5s,transform .5s}
+.in .py li{opacity:1;transform:none}
+.py li code{font:600 13px var(--head);color:#fff;background:rgba(255,255,255,.08);border-radius:7px;padding:3px 8px;justify-self:start}
+.py .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12)}
+.py .nums b{display:block;font:700 28px var(--head);color:#fff}
+.py .nums span{font-size:12px;color:#9AA3B4}
+.note{font-size:12.5px;color:var(--muted);margin-top:12px}
+
+/* chart scenes */
+.head-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px}
+.head-row p{margin:8px 0 0;color:var(--muted);font-size:15px;max-width:640px}
+.tog{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:3px}
+.tog button{appearance:none;border:0;background:transparent;font:600 13px var(--body);color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer;transition:background .2s,color .2s}
+.tog button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(10,13,18,.08),0 2px 8px rgba(10,13,18,.06)}
+.chart-card{margin-top:20px;border:1px solid var(--line);border-radius:20px;padding:22px 24px 14px;background:#fff}
+.chart-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.chart-title{font:700 15px var(--head);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;border:1px solid var(--line);background:#fff;color:var(--muted);font:600 12.5px var(--body);padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+svg.chart{width:100%;height:auto;display:block;overflow:visible;max-height:calc(100svh - 380px)}
+svg.chart text{font-family:var(--body);fill:var(--muted);font-size:12px}
+svg.chart .lbl-strong{fill:var(--ink);font-weight:700;font-size:13px}
+svg.chart .val{fill:var(--ink);font:700 16px var(--head)}
+svg.chart .val.red{fill:var(--red)}
+svg.chart .gridl{stroke:var(--grid);stroke-width:1}
+svg.chart .base{stroke:var(--bar2);stroke-width:1}
+svg.chart .band-lbl{fill:var(--ink);font:700 13px var(--head)}
+.dot:hover{stroke:var(--ink);stroke-width:2}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.stat{border:1px solid var(--line);border-radius:18px;padding:26px}
+.stat b{display:block;font:700 clamp(40px,5vw,64px)/1 var(--head);letter-spacing:-.03em}
+.stat b.red{color:var(--red)}
+.stat span{display:block;margin-top:12px;font-size:15px;color:var(--ink2)}
+.stat small{display:block;margin-top:8px;font-size:12px;color:var(--faint)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two .chart-card h3{font-size:20px;margin:4px 0 0}
+.under{display:grid;grid-template-columns:1fr 1fr;gap:0 28px;margin-top:20px}
+.under div{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;font-size:14.5px;padding:10px 0;border-bottom:1px solid var(--grid)}
+.under .y{color:var(--faint);font-weight:600}
+.under .pill{font-size:11.5px;font-weight:600;color:var(--ink2);background:var(--soft);padding:2px 8px;border-radius:6px}
+.under .pill.so{color:var(--red);background:var(--red-soft)}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:#fff;font-size:12.5px;line-height:1.45;padding:9px 11px;border-radius:9px;max-width:250px;opacity:0;transition:opacity .12s;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.tip b{font-family:var(--head)}
+
+/* end */
+.end{text-align:center}
+.end h2{font-size:clamp(40px,6vw,84px);letter-spacing:-.045em;line-height:1}
+.end h2 em{font-style:normal;background:linear-gradient(180deg,#E9B53A,#B57F06);-webkit-background-clip:text;background-clip:text;color:transparent}
+.levers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:40px auto 0;max-width:980px;text-align:left}
+.lever{border:1px solid var(--line);border-radius:18px;padding:22px;opacity:0;transform:translateY(14px);transition:opacity .6s var(--dl),transform .6s var(--dl)}
+.in .lever{opacity:1;transform:none}
+.lever .n{font:700 13px var(--head);color:var(--red)}
+.lever b{display:block;font:700 22px/1.2 var(--head);margin:8px 0 6px;letter-spacing:-.02em}
+.lever span{font-size:14px;color:var(--ink2)}
+.end .links{margin-top:34px;font-size:14px;color:var(--muted)}
+.end .links a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);margin:0 8px}
+.end .team{margin-top:12px;font-size:12.5px;color:var(--faint)}
+
+@media (max-width:1000px){
+  .opening .wrap{grid-template-columns:1fr;gap:8px}
+  .radial-wrap{max-width:520px;order:-1}
+  .opening h1{font-size:clamp(48px,14vw,84px)}
+  .opening .how{display:none}
+  .bk-body{grid-template-columns:1fr}
+  .side{flex-direction:row;flex-wrap:wrap}
+  .side>*{flex:1 1 240px}
+  .method-grid{grid-template-columns:1fr}
+  .flow{display:none}
+  .sources{margin-bottom:16px}
+  .two,.under,.levers{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .nav ul{display:none}
+  .seg button{padding:8px 9px;font-size:13px}
+  .stats3{grid-template-columns:1fr}
+  .py{padding:26px 22px}
+  .py li{grid-template-columns:1fr;gap:4px}
+  .chart-card{padding:16px 12px 12px;border-radius:16px}
+  #bracket,svg.chart{max-height:none}
+  .radial-center .n{font-size:26px}
+  .radial-center .l{font-size:11px}
+  .tour{font-size:13px;padding:10px 12px 10px 16px}
+  .tour .sub{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .scene > .wrap,.q-scene h2 .w,.q-scene p,.q-scene .qmark,.srcard,.py li,.lever{transition:none;opacity:1;transform:none;filter:none}
+  .tour .arr,#radial .por,.flow path.pulse{animation:none}
+  #bracket .link.win{animation:none;stroke-dashoffset:0}
+  #bracket .fade{animation:none;opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="bar-top" id="barTop"></div>
+
+<nav class="nav" id="nav" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="#top" data-go="#top">Road to <span>2030</span></a>
+    <ul>
+      <li><a data-go="#worldcups">World Cups</a></li>
+      <li><a data-go="#method">Data &amp; method</a></li>
+      <li><a data-go="#step1">Analysis</a></li>
+      <li><a data-go="#ronaldoS">Further analysis</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main>
+<section class="scene opening" id="top">
+  <div class="wrap">
+    <div class="copy">
+      <div class="kick">A data visualization project</div>
+      <h1>Road<span>TO THE</span><em>2030</em></h1>
+      <p>Six World Cups, 208 squads, one question: why has Portugal, with a top-10 squad every time, never reached a final?</p>
+      <div class="how">
+        <span><i style="width:9px;height:9px;background:var(--bar2)"></i>Each dot is one squad, sized by market value</span>
+        <span><i style="width:9px;height:9px;border:1px solid var(--faint)"></i>Closer to the centre = further in the tournament</span>
+        <span><i style="width:9px;height:9px;background:var(--gold)"></i>Champion &nbsp;<i style="width:9px;height:9px;background:var(--red)"></i>Portugal</span>
+      </div>
+    </div>
+    <div class="radial-wrap">
+      <svg id="radial" viewBox="0 0 1000 1000" role="img" aria-label="All 208 squads of six World Cups, placed by the round they reached"></svg>
+      <div class="radial-center"><div><div class="n">0 finals</div><div class="l">for Portugal since 2006</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q1"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 1</div>
+  <h2 data-split>How far did the richest squads get, and <em>where did Portugal drop out?</em></h2>
+  <p>Six knockout stages, replayed.</p>
+</div></section>
+
+<section class="scene" id="worldcups">
+  <div class="wrap">
+    <div class="bk-head">
+      <div>
+        <div class="label"><b>01</b>The last six World Cups</div>
+        <h2 id="bkTitle">Knockout stage 2026</h2>
+      </div>
+      <div class="ctrl">
+        <div class="seg" id="seg" role="group" aria-label="World Cup year"></div>
+        <button class="play" id="play" aria-label="Play all years"><svg viewBox="0 0 12 12" aria-hidden="true"><path id="playIcon" d="M3 1.5l7.5 4.5L3 10.5z" fill="currentColor"/></svg></button>
+      </div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+    <div class="bk-body">
+      <div>
+        <svg id="bracket" viewBox="0 0 1160 560" role="img" aria-labelledby="bkDesc"><desc id="bkDesc">Knockout bracket from the round of 16 to the final. Each team shows its rank by squad market value.</desc></svg>
+        <div class="legend"><span><i style="border:1px solid #DADDE3"></i>Team · #rank by squad value</span><span><i style="background:var(--gold)"></i>Champion's path</span><span><i style="background:var(--red)"></i>Portugal</span></div>
+      </div>
+      <aside class="side" aria-live="polite">
+        <div class="por-card" id="porCard"></div>
+        <div class="mini"><div class="k">Portugal, six World Cups</div><div class="runs" id="runs"></div><div class="scale">Bar height = round reached</div></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q2"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 2</div>
+  <h2 data-split>Where do these numbers <em>come from?</em></h2>
+  <p>Four public sources, cleaned and linked in Python.</p>
+</div></section>
+
+<section class="scene method" id="method">
+  <div class="wrap">
+    <div class="label"><b>02</b>Data &amp; method</div>
+    <h2>Four public sources. One Python pipeline.</h2>
+    <div class="method-grid">
+      <div class="sources">
+        <a class="srcard" style="--dl:.05s" href="https://api.fifa.com/api/v3/seasons?idCompetition=17&amp;count=100" target="_blank" rel="noopener"><div class="id">S1</div><div><b>FIFA API</b><span>Every match and squad list, 2006–2026</span></div><svg class="go" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+        <a class="srcard" style="--dl:.15s" href="https://www.kaggle.com/datasets/khayalmammadov/fifa-world-cup-2026-48-teams-dataset" target="_blank" rel="noopener"><div class="id">S2</div><div><b>Kaggle: World Cup 2026</b><span>Squad market values of all 48 teams</span></div><svg class="go" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+        <a class="srcard" style="--dl:.25s" href="https://github.com/dcaribou/transfermarkt-datasets" target="_blank" rel="noopener"><div class="id">S3</div><div><b>transfermarkt-datasets</b><span>Market-value history of every player</span></div><svg class="go" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+        <div class="srcard" style="--dl:.35s"><div class="id">S4</div><div><b>Squad values 2006–2022</b><span>One published table per World Cup</span>
+          <div class="links">
+            <a href="https://www.tcd.ie/triss/assets/PDFs/iiis/iiisdp217.pdf" target="_blank" rel="noopener">2006 TCD</a>
+            <a href="https://www.polsoz.fu-berlin.de/en/soziologie/arbeitsbereiche/seniorprofessur/mitarbeiter/lehrstuhlinhaber/dateien/research_note_36_money_vs_chance_06_10.pdf" target="_blank" rel="noopener">2010 FU Berlin</a>
+            <a class="warn" href="https://think.ing.com/uploads/reports/IIS_cuponomics_special_report_2014.pdf" target="_blank" rel="noopener" title="ING names only 'fan websites' as its basis">2014 ING*</a>
+            <a href="https://www.diw.de/documents/publikationen/73/diw_01.c.591704.de/diw_aktuell_12.pdf" target="_blank" rel="noopener">2018 DIW</a>
+            <a href="https://www.planetfootball.com/quick-reads/ranking-every-2022-world-cup-squad-by-transfer-value-england-brazil" target="_blank" rel="noopener">2022 Planet Football</a>
+          </div></div><span></span></div>
+      </div>
+      <svg class="flow" id="flow" viewBox="0 0 110 400" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="py">
+        <div class="k">Built with</div>
+        <h3>Python</h3>
+        <ul>
+          <li style="transition-delay:.5s"><code>pandas</code><span>matched 4,972 players to Transfermarkt by name, country and age</span></li>
+          <li style="transition-delay:.65s"><code>pypdf</code><span>read the squad values out of the published tables</span></li>
+          <li style="transition-delay:.8s"><code>statsmodels</code><span>logistic regression: chance of each round by value rank</span></li>
+          <li style="transition-delay:.95s"><code>SciPy</code><span>rank correlations and significance tests</span></li>
+          <li style="transition-delay:1.1s"><code>Jupyter</code><span>appendix that re-checks every number on the slides</span></li>
+        </ul>
+        <div class="nums">
+          <div><b data-count="424">0</b><span>matches</span></div>
+          <div><b data-count="208">0</b><span>squads</span></div>
+          <div><b data-count="4972">0</b><span>players</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">* The 2014 table (ING) names only “fan websites” as its basis. All other values are Transfermarkt market values just before each tournament.</p>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q3"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 3</div>
+  <h2 data-split>Does a more valuable squad <em>really go further?</em></h2>
+  <p>Every squad, ranked by market value within its World Cup.</p>
+</div></section>
+
+<section class="scene chart-scene" id="step1">
+  <div class="wrap">
+    <div class="head-row">
+      <div>
+        <div class="label"><b>03</b>Analysis · Step 1</div>
+        <h2>Richer squads go further</h2>
+        <p id="s1sub">Each dot is one squad. Rank 1 = most valuable squad of its World Cup.</p>
+      </div>
+      <div class="tog" id="s1tog" role="group" aria-label="Chart view">
+        <button data-v="dots" aria-pressed="true">Squads</button>
+        <button data-v="bands" aria-pressed="false">Value bands</button>
+        <button data-v="model" aria-pressed="false">Model</button>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-top">
+        <p class="chart-title" id="s1title">Round reached by squad value rank, 2006–2026</p>
+        <div class="chips" id="s1years" role="group" aria-label="Filter by year"></div>
+      </div>
+      <svg class="chart" id="s1" viewBox="0 0 1140 470" role="img" aria-label="Round reached by squad value rank"></svg>
+      <div class="legend" id="s1legend"></div>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q4"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 4</div>
+  <h2 data-split>Or could that pattern be <em>just chance?</em></h2>
+  <p>Three numbers from the statistics.</p>
+</div></section>
+
+<section class="scene chart-scene" id="step2">
+  <div class="wrap">
+    <div class="label"><b>03</b>Analysis · Step 2</div>
+    <h2>No. The link is strong and statistically clear</h2>
+    <div class="stats3" id="stats3"></div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q5"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 5</div>
+  <h2 data-split>Portugal usually ranks 5th to 8th. <em>What do the finalists have that it lacks?</em></h2>
+  <p>We split every squad's value into goalkeepers, defence, midfield and attack.</p>
+</div></section>
+
+<section class="scene chart-scene" id="step3">
+  <div class="wrap">
+    <div class="label"><b>03</b>Analysis · Step 3</div>
+    <h2>A top-5 attack. Among top-10 squads, nothing else makes a difference</h2>
+    <div class="chart-card">
+      <p class="chart-title">Share of top-10 squads that reached the final, 2010–2026</p>
+      <svg class="chart" id="lines" viewBox="0 0 1140 340" role="img" aria-label="Final rate by line"></svg>
+      <div class="legend"><span><i style="background:var(--bar2)"></i>Line ranked top 5 at its World Cup</span><span><i style="background:var(--bar)"></i>Not top 5</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q6"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 6</div>
+  <h2 data-split>So where did <em>Portugal's money</em> go?</h2>
+  <p>The attack's share of Portugal's squad value, World Cup by World Cup.</p>
+</div></section>
+
+<section class="scene chart-scene" id="step4">
+  <div class="wrap">
+    <div class="label"><b>03</b>Analysis · Step 4</div>
+    <h2>Away from the attack: from half the value in 2014 to a quarter in 2026</h2>
+    <div class="chart-card">
+      <p class="chart-title">Attack's share of Portugal's squad value · attack rank at that World Cup</p>
+      <svg class="chart" id="porAttack" viewBox="0 0 1140 330" role="img" aria-label="Portugal attack share"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q7"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 7</div>
+  <h2 data-split>Wasn't Portugal simply <em>Ronaldo's team?</em></h2>
+  <p>His share of the squad's value, and his rank inside the squad.</p>
+</div></section>
+
+<section class="scene chart-scene" id="ronaldoS">
+  <div class="wrap">
+    <div class="label"><b>04</b>Further analysis</div>
+    <h2>At his peak a third of the value. By 2026 just 1%</h2>
+    <div class="chart-card">
+      <p class="chart-title">Ronaldo's share of Portugal's squad value · his rank in the squad</p>
+      <svg class="chart" id="ronaldo" viewBox="0 0 1140 330" role="img" aria-label="Ronaldo's share of squad value"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q8"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 8</div>
+  <h2 data-split>Besides money, <em>what can a top squad control?</em></h2>
+  <p>How it finishes its group, and how it handles penalties.</p>
+</div></section>
+
+<section class="scene chart-scene" id="groupPens">
+  <div class="wrap">
+    <div class="label"><b>04</b>Further analysis</div>
+    <h2>Win the group, and be ready for penalties</h2>
+    <div class="two">
+      <div class="chart-card"><p class="chart-title">Top-8 squads that reached the quarter-final</p><svg class="chart" id="groupQ" viewBox="0 0 540 300" role="img" aria-label="Quarter-final rate by group finish"></svg></div>
+      <div class="chart-card"><p class="chart-title">Knockouts won by the richer squad</p><svg class="chart" id="pens" viewBox="0 0 540 300" role="img" aria-label="Richer squad win rate"></svg></div>
+    </div>
+  </div>
+</section>
+
+<section class="scene q-scene" id="q9"><div class="qmark" aria-hidden="true">?</div><div class="wrap">
+  <div class="num">Question 9</div>
+  <h2 data-split>Can a cheap squad still <em>beat its price tag?</em></h2>
+  <p>Squads ranked 13th or lower that reached the quarter-final.</p>
+</div></section>
+
+<section class="scene chart-scene" id="underS">
+  <div class="wrap">
+    <div class="label"><b>04</b>Further analysis</div>
+    <h2>Ten underdogs did, and eight of them won a penalty shoot-out on the way</h2>
+    <div class="under" id="under"></div>
+  </div>
+</section>
+
+<section class="scene end" id="end">
+  <div class="wrap">
+    <div class="label">The answer</div>
+    <h2 style="margin-top:14px">Portugal's road to <em>2030</em></h2>
+    <div class="levers">
+      <div class="lever" style="--dl:.2s"><div class="n">01</div><b>Build the attack</b><span>9 of 10 finalists since 2010 had a top-5 attack. Portugal's ranked 8th in 2026.</span></div>
+      <div class="lever" style="--dl:.4s"><div class="n">02</div><b>Win the group</b><span>Top-8 group winners reached the quarter-final 84% of the time, runners-up 22%.</span></div>
+      <div class="lever" style="--dl:.6s"><div class="n">03</div><b>Prepare for penalties</b><span>On penalties the richer squad's edge shrinks from 79% to 57%.</span></div>
+    </div>
+    <div class="links"><a href="https://github.com/freggas/DVBA-Group-Assignment" target="_blank" rel="noopener">Code on GitHub</a> · <a href="https://felixl44.github.io/team14-appendix/" target="_blank" rel="noopener">Technical appendix</a></div>
+    <div class="team">Team 14 · Emre, Felix, Frederik, Layne and Penelope · Datathon 2026 · Squad values: Transfermarkt market values before each tournament. Historical rates, not a forecast.</div>
+  </div>
+</section>
+</main>
+
+<button class="tour idle" id="tour"><span id="tourTxt">Start the tour</span><span class="arr" id="tourIcon"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v9M2 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+const D = window.T14, NS = "http://www.w3.org/2000/svg";
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; };
+const pct = (a, b) => Math.round(100 * a / b - 1e-9);
+const eur = v => v >= 1000 ? "€" + (v / 1000).toFixed(2).replace(/0$/, "") + "bn" : "€" + Math.round(v) + "m";
+const years = D.editions.map(e => e.year);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const STAGE_IDX = { 0: 0, 1: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6 };
+
+/* tooltip */
+const tip = $("#tip");
+const moveTip = ev => { tip.style.left = Math.min(ev.clientX + 14, innerWidth - 262) + "px"; tip.style.top = (ev.clientY + 14) + "px"; };
+const hover = (node, html) => { node.addEventListener("mouseenter", e => { tip.innerHTML = typeof html === "function" ? html() : html; tip.style.opacity = 1; moveTip(e); }); node.addEventListener("mousemove", moveTip); node.addEventListener("mouseleave", () => tip.style.opacity = 0); };
+
+/* split question headings into words for the pop-in */
+$$("[data-split]").forEach(h => {
+  let i = 0;
+  const walk = node => [...node.childNodes].forEach(n => {
+    if (n.nodeType === 3) {
+      const frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(w => { if (!w) return; if (/^\s+$/.test(w)) { frag.appendChild(document.createTextNode(w)); return; } const s = document.createElement("span"); s.className = "w"; s.style.transitionDelay = (.15 + i++ * .07) + "s"; s.textContent = w; frag.appendChild(s); });
+      n.replaceWith(frag);
+    } else walk(n);
+  });
+  walk(h);
+});
+
+/* scenes: reveal + lazy chart renders */
+const scenes = $$(".scene");
+const onEnter = {};
+const sio = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add("in"); const f = onEnter[e.target.id]; if (f && !f.done) { f.done = true; f(); } }
+}), { threshold: .35 });
+scenes.forEach(s => sio.observe(s));
+
+/* exact scrolling: a scene's top sits right at the top of the window (its padding clears the nav) */
+const sceneTop = s => Math.round(s.getBoundingClientRect().top + scrollY);
+function goTo(sel, smooth = true){
+  const s = typeof sel === "string" ? $(sel) : sel;
+  return new Promise(res => {
+    const top = sceneTop(s);
+    scrollTo({ top, behavior: smooth && !reduce ? "smooth" : "auto" });
+    let last = -1, same = 0;
+    const check = () => { if (Math.abs(scrollY - top) < 2 || same > 8) { scrollTo({ top, behavior: "auto" }); res(); return; } same = scrollY === last ? same + 1 : 0; last = scrollY; requestAnimationFrame(check); };
+    requestAnimationFrame(check);
+  });
+}
+$$("[data-go]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); stopTour(); goTo(a.dataset.go); }));
+
+/* nav + progress bar */
+const nav = $("#nav"), barTop = $("#barTop");
+addEventListener("scroll", () => {
+  nav.classList.toggle("solid", scrollY > 40);
+  barTop.style.width = (100 * scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight)) + "%";
+}, { passive: true });
+
+/* ================= opening radial ================= */
+(function radial(){
+  const R = $("#radial"), C = 500, rIn = 182, rOut = 452, TOP_GAP = 34, GAP = 4;
+  const span = (360 - TOP_GAP - GAP * 5) / 6, ringR = i => rOut - i * (rOut - rIn) / 6, rad = d => (d - 90) * Math.PI / 180;
+  ["Group", "R32", "R16", "QF", "SF", "Final", "Champion"].forEach((n, i) => { el("circle", { cx: C, cy: C, r: ringR(i), class: "ring" }, R); txt(R, C, C - ringR(i) + 4, n, { "text-anchor": "middle", class: "ring-lbl" }); });
+  const intro = [];
+  D.editions.forEach((ed, yi) => {
+    const a0 = TOP_GAP / 2 + yi * (span + GAP), mid = a0 + span / 2, maxV = Math.max(...ed.squads.map(s => s.value));
+    const lx = C + 492 * Math.cos(rad(mid)), ly = C + 492 * Math.sin(rad(mid));
+    txt(R, lx, ly + 2, ed.year, { "text-anchor": "middle", class: "yr-lbl" });
+    txt(R, lx, ly + 18, ed.champion.team, { "text-anchor": "middle", class: "yr-sub" });
+    ed.squads.forEach(s => {
+      const ang = a0 + (s.rank - 1) / (ed.teams - 1) * span, ri = ringR(STAGE_IDX[s.stage_n]);
+      const x = C + ri * Math.cos(rad(ang)), y = C + ri * Math.sin(rad(ang)), isC = s.stage_n === 7, isP = s.code === "POR";
+      const c = el("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: (3.5 + 8.5 * Math.sqrt(s.value / maxV)).toFixed(1), class: "sq",
+        fill: isP ? "var(--red)" : isC ? "var(--gold)" : "var(--bar2)", "fill-opacity": isP || isC ? 1 : .5 }, R);
+      hover(c, `<b>${s.team} ${ed.year}</b><br>#${s.rank} of ${ed.teams} by squad value · ${eur(s.value)}<br>Reached: ${s.stage}`);
+      if (reduce) { if (isP) c.classList.add("por"); return; }
+      c.style.opacity = 0;
+      intro.push(() => { c.style.opacity = ""; c.animate([{ transform: `translate(${C - x}px,${C - y}px) scale(.2)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 1100, delay: 150 + yi * 220 + s.rank * 12, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }); if (isP) setTimeout(() => c.classList.add("por"), 2600); });
+    });
+  });
+  onEnter.top = () => intro.forEach(f => f());
+})();
+
+/* ================= bracket ================= */
+const svg = $("#bracket"), W = 1160, H = 560, BW = 80, BH = 30;
+const colX = { L: [0, 152, 296, 432], R: [W - BW, W - BW - 152, W - BW - 296, W - BW - 432] };
+const leaves = n => n.c1 ? [...leaves(n.c1), ...leaves(n.c2)] : [n];
+function drawBracket(year){
+  const ed = D.editions.find(e => e.year === year), sq = Object.fromEntries(ed.squads.map(s => [s.code, s]));
+  while (svg.lastChild && svg.lastChild.tagName !== "desc") svg.removeChild(svg.lastChild);
+  const gL = el("g", {}, svg), gB = el("g", {}, svg), champ = ed.champion.code, top = 92, gap = (H - top - 18) / 8;
+  let porLast = null;
+  function box(side, col, y, code, cls, d){
+    const x = colX[side][col], g = el("g", { class: "box fade " + cls, transform: `translate(${x},${y - BH / 2})`, style: `--d:${d}s` }, gB);
+    el("rect", { width: BW, height: BH, rx: 8 }, g); txt(g, 11, 19.5, code);
+    const s = sq[code];
+    if (s) txt(g, BW - 9, 19.5, "#" + s.rank, { "text-anchor": "end", class: "rk" });
+    hover(g, s ? `<b>${s.team}</b><br>#${s.rank} of ${ed.teams} by squad value · ${eur(s.value)}<br>Reached: ${s.stage}` : code);
+    if (code === "POR") porLast = { side, x, y, d };
+  }
+  function link(x1, y1, x2, y2, win, d){
+    const p = el("path", { d: `M${x1},${y1} H${(x1 + x2) / 2} V${y2} H${x2}`, class: "link" + (win ? " win" : "") }, gL);
+    if (win) { p.style.setProperty("--len", Math.abs(x2 - x1) + Math.abs(y2 - y1) + 2); p.style.setProperty("--d", d + "s"); }
+  }
+  const cls = c => (c === champ ? "win " : "") + (c === "POR" ? "por" : "");
+  [["L", ed.bracket.c1], ["R", ed.bracket.c2]].forEach(([side, sf]) => {
+    const teamY = {};
+    leaves(sf).forEach((m, i) => { teamY[m.t1] = top + gap * (2 * i + .5); teamY[m.t2] = top + gap * (2 * i + 1.5); });
+    const edge = c => side === "L" ? colX.L[c] + BW : colX.R[c], inner = c => side === "L" ? colX.L[c] : colX.R[c] + BW;
+    Object.entries(teamY).forEach(([c, y], i) => box(side, 0, y, c, cls(c), .02 * i));
+    function place(n){
+      if (!n.c1) return { col: 0, y1: teamY[n.t1], y2: teamY[n.t2] };
+      const a = place(n.c1), b = place(n.c2), ya = (a.y1 + a.y2) / 2, yb = (b.y1 + b.y2) / 2, col = a.col + 1, d = .3 + col * .45, wa = n.c1.w, wb = n.c2.w;
+      link(edge(a.col), a.y1, inner(col), ya, wa === n.c1.t1 && wa === champ, d); link(edge(a.col), a.y2, inner(col), ya, wa === n.c1.t2 && wa === champ, d);
+      link(edge(b.col), b.y1, inner(col), yb, wb === n.c2.t1 && wb === champ, d); link(edge(b.col), b.y2, inner(col), yb, wb === n.c2.t2 && wb === champ, d);
+      box(side, col, ya, wa, cls(wa), d + .25); box(side, col, yb, wb, cls(wb), d + .25);
+      return { col, y1: ya, y2: yb };
+    }
+    const r = place(sf), fy = (r.y1 + r.y2) / 2, col = r.col + 1, d = .3 + col * .45;
+    link(edge(r.col), r.y1, inner(col), fy, sf.w === sf.t1 && sf.w === champ, d); link(edge(r.col), r.y2, inner(col), fy, sf.w === sf.t2 && sf.w === champ, d);
+    box(side, col, fy, sf.w, (sf.w === champ ? "champ " : "") + (sf.w === "POR" ? "por" : ""), d + .25);
+  });
+  const f = ed.bracket, cx = W / 2, fyc = (top + H - 18) / 2, c = ed.champion;
+  el("line", { x1: colX.L[3] + BW, x2: colX.R[3], y1: fyc, y2: fyc, class: "final-line fade", style: "--d:2s" }, gL);
+  txt(gB, cx, fyc - 12, "FINAL", { "text-anchor": "middle", class: "final-lbl fade", style: "--d:2s" });
+  txt(gB, cx, fyc + 26, `${f.s1}–${f.s2}` + (f.pens ? ` (${f.pens[0]}–${f.pens[1]} p)` : ""), { "text-anchor": "middle", class: "final-score fade", style: "--d:2s" });
+  txt(gB, cx, 16, `${year} CHAMPION`, { "text-anchor": "middle", class: "ch-lbl" });
+  txt(gB, cx, 52, c.team, { "text-anchor": "middle", class: "ch-name" });
+  txt(gB, cx, 74, `#${c.rank} of ${ed.teams} by squad value · ${eur(c.value)}`, { "text-anchor": "middle", class: "ch-meta" });
+  const run = D.portugal_runs.find(r => r.year === year);
+  if (porLast && run && !run.last.won) {
+    const tx = porLast.side === "L" ? porLast.x + BW + 6 : porLast.x - 44;
+    const g = el("g", { class: "out-tag fade", transform: `translate(${tx},${porLast.y - 9})`, style: `--d:${porLast.d + .3}s` }, gB);
+    el("rect", { width: 38, height: 18, rx: 5 }, g); txt(g, 19, 12.5, "OUT", { "text-anchor": "middle" });
+  }
+  $("#bkTitle").textContent = `Knockout stage ${year}`;
+  $$("#seg button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.y === year));
+  porPanel(year);
+}
+function porPanel(year){
+  const r = D.portugal_runs.find(x => x.year === year), L = r.last, ed = D.editions.find(e => e.year === year);
+  const sc = `${L.score[0]}–${L.score[1]}` + (L.pens ? ` (${L.pens[0]}–${L.pens[1]} on penalties)` : "");
+  const card = $("#porCard");
+  card.classList.toggle("group", r.stage === "Group stage");
+  card.innerHTML = r.stage === "Group stage"
+    ? `<div class="k">Portugal ${year}</div><div class="big">Out in the group stage</div><div class="meta">3rd in its group, not in the round of 16 at all, despite the #${r.rank} squad by value (${eur(r.value)}).</div>`
+    : `<div class="k">Portugal ${year}</div><div class="big">Out in ${{ "Semi-final": "the semi-final", "Quarter-final": "the quarter-final" }[r.stage] || "the round of 16"}</div><div class="meta">Lost ${sc} to ${L.opponent}. Squad #${r.rank} of ${ed.teams} by value (${eur(r.value)}), group place ${r.group_place}.</div>`;
+  const hgt = { "Group stage": .12, "Round of 32": .25, "Round of 16": .38, "Quarter-final": .58, "Semi-final": .78, "Final": .9, "Champion": 1 };
+  $("#runs").innerHTML = D.portugal_runs.map(x => `<div class="${x.year === year ? "on" : ""}" title="${x.year}: ${x.stage}"><i><b style="height:${hgt[x.stage] * 100}%"></b></i>${String(x.year).slice(2)}</div>`).join("");
+}
+years.forEach(y => { const b = document.createElement("button"); b.textContent = y; b.dataset.y = y; b.onclick = () => { stopPlay(); stopTour(); drawBracket(y); }; $("#seg").appendChild(b); });
+const prog = $("#prog");
+let playing = null;
+function stopPlay(){ if (playing) { playing.cancel = true; playing = null; } $("#playIcon").setAttribute("d", "M3 1.5l7.5 4.5L3 10.5z"); prog.style.transition = "none"; prog.style.width = "0"; }
+async function playYears(token){
+  const me = { cancel: false }; playing = me;
+  $("#playIcon").setAttribute("d", "M2.5 1.5h2.5v9H2.5zM7 1.5h2.5v9H7z");
+  for (const y of years) {
+    if (me.cancel || (token && token.cancel)) return;
+    drawBracket(y);
+    prog.style.transition = "none"; prog.style.width = "0";
+    await new Promise(r => requestAnimationFrame(r));
+    prog.style.transition = "width 4.4s linear"; prog.style.width = "100%";
+    await sleep(4400, token, me);
+  }
+  if (playing === me) stopPlay();
+}
+$("#play").onclick = () => { stopTour(); playing ? stopPlay() : playYears(); };
+drawBracket(years[years.length - 1]);
+
+/* ================= method flow + counters ================= */
+(function(){ const f = $("#flow"); [50, 140, 230, 330].forEach(y => { const d = `M0,${y} C55,${y} 55,200 110,200`; el("path", { d }, f); el("path", { d, class: "pulse" }, f); }); })();
+onEnter.method = () => $$("#method [data-count]").forEach(n => {
+  const to = +n.dataset.count, t0 = performance.now(), dur = reduce ? 0 : 1500;
+  const step = t => { const p = dur ? Math.min(1, (t - t0) / dur) : 1; n.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))).toLocaleString("en"); if (p < 1) requestAnimationFrame(step); };
+  setTimeout(() => requestAnimationFrame(step), 500);
+});
+
+/* ================= step 1 ================= */
+const STAGES = ["Group stage", "Round of 32", "Round of 16", "Quarter-final", "Semi-final", "Final", "Champion"];
+const s1 = $("#s1"), SW = 1140, SH = 470, m = { l: 112, r: 16, t: 58, b: 56 };
+const BANDS = [[1, 4, "Top 4"], [5, 8, "Rank 5–8"], [9, 16, "Rank 9–16"], [17, 48, "Rank 17+"]];
+let s1View = "dots", s1Year = "all";
+function drawS1(){
+  s1.innerHTML = "";
+  const x = r => m.l + 14 + Math.log(r) / Math.log(48) * (SW - m.l - m.r - 14), xt = [1, 2, 4, 8, 16, 32, 48];
+  const axis = () => { xt.forEach(r => txt(s1, x(r), SH - m.b + 22, "#" + r, { "text-anchor": "middle" })); txt(s1, m.l, SH - 6, "Rank by squad market value (1 = most valuable, log scale) →"); };
+  if (s1View === "model") {
+    const y = p => m.t + (1 - p) * (SH - m.t - m.b);
+    [0, .25, .5, .75, 1].forEach(p => { el("line", { x1: m.l, x2: SW - m.r, y1: y(p), y2: y(p), class: "gridl" }, s1); txt(s1, m.l - 12, y(p) + 4, Math.round(p * 100) + "%", { "text-anchor": "end" }); });
+    axis();
+    [["qf", "Quarter-final", "var(--bar2)"], ["sf", "Semi-final", "var(--ink2)"], ["final", "Final", "var(--red)"]].forEach(([k, name, col], si) => {
+      const pl = el("polyline", { points: D.model.curves[k].map((p, i) => `${x(i + 1)},${y(p)}`).join(" "), fill: "none", stroke: col, "stroke-width": 2.5, "stroke-linejoin": "round" }, s1);
+      if (!reduce) { pl.setAttribute("stroke-dasharray", 2600); pl.animate([{ strokeDashoffset: 2600 }, { strokeDashoffset: 0 }], { duration: 1200, delay: si * 200, fill: "both", easing: "ease-out" }); }
+      const lr = [6, 4, 2][si]; txt(s1, x(lr) + 10, y(D.model.curves[k][lr - 1]) - 8, name, { style: `fill:${col};font-weight:700;font-size:13px` });
+    });
+    D.bands.forEach((b, i) => { const [lo, hi] = BANDS[i], c = el("circle", { cx: x(Math.sqrt(lo * hi)), cy: y(b.final / b.n), r: 6, fill: "#fff", stroke: "var(--red)", "stroke-width": 2 }, s1); hover(c, `<b>${b.band}: observed</b><br>${b.final} of ${b.n} squads reached the final (${pct(b.final, b.n)}%)`); });
+    const hit = el("rect", { x: m.l, y: m.t, width: SW - m.l - m.r, height: SH - m.t - m.b, fill: "transparent" }, s1);
+    const cross = el("line", { y1: m.t, y2: SH - m.b, stroke: "var(--faint)", "stroke-dasharray": "3 3", opacity: 0 }, s1);
+    hit.addEventListener("mousemove", ev => {
+      const bb = s1.getBoundingClientRect(), sx = (ev.clientX - bb.left) / bb.width * SW;
+      const r = Math.max(1, Math.min(48, Math.round(Math.exp((sx - m.l - 14) / (SW - m.l - m.r - 14) * Math.log(48)))));
+      cross.setAttribute("x1", x(r)); cross.setAttribute("x2", x(r)); cross.setAttribute("opacity", 1);
+      tip.innerHTML = `<b>Value rank #${r}</b><br>Quarter-final ${Math.round(D.model.curves.qf[r - 1] * 100)}%<br>Semi-final ${Math.round(D.model.curves.sf[r - 1] * 100)}%<br>Final ${Math.round(D.model.curves.final[r - 1] * 100)}%`; tip.style.opacity = 1; moveTip(ev);
+    });
+    hit.addEventListener("mouseleave", () => { tip.style.opacity = 0; cross.setAttribute("opacity", 0); });
+    $("#s1legend").innerHTML = `<span><i style="background:var(--bar2)"></i>Quarter-final</span><span><i style="background:var(--ink2)"></i>Semi-final</span><span><i style="background:var(--red)"></i>Final</span><span><i style="border:2px solid var(--red);border-radius:50%"></i>Observed final rate per value band</span>`;
+    $("#s1title").textContent = "Modelled chance of reaching each round, by squad value rank";
+    $("#s1sub").textContent = `Logistic regression on the log of the value rank, all ${D.model.spearman.n} squads 2006–2026.`;
+    $("#s1years").style.visibility = "hidden";
+    return;
+  }
+  $("#s1years").style.visibility = "visible";
+  $("#s1title").textContent = "Round reached by squad value rank, " + (s1Year === "all" ? "2006–2026" : s1Year);
+  $("#s1sub").textContent = s1View === "bands" ? "The value bands we compare, with the share of squads in each band that reached the final." : "Each dot is one squad. Rank 1 = most valuable squad of its World Cup.";
+  const y = i => m.t + (6 - i) / 6 * (SH - m.t - m.b);
+  if (s1View === "bands") BANDS.forEach(([lo, hi, name], i) => {
+    const x0 = lo === 1 ? m.l : x(lo - .5), x1 = hi === 48 ? SW - m.r : x(hi + .5), b = D.bands[i];
+    const r = el("rect", { x: x0, y: 4, width: x1 - x0, height: SH - m.b - 4, fill: i % 2 ? "#FAFBFC" : "#F2F4F7", rx: 6 }, s1);
+    const t = txt(s1, (x0 + x1) / 2, 28, `${name} · ${pct(b.final, b.n)}% final`, { "text-anchor": "middle", class: "band-lbl", style: i === 1 ? "fill:var(--red)" : "" });
+    if (!reduce) [r, t].forEach(n => n.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: i * 180, fill: "backwards" }));
+  });
+  STAGES.forEach((s, i) => { el("line", { x1: m.l, x2: SW - m.r, y1: y(i), y2: y(i), class: "gridl" }, s1); txt(s1, m.l - 14, y(i) + 4, s, { "text-anchor": "end" }); });
+  axis();
+  const pts = D.editions.flatMap(e => e.squads.map(s => ({ ...s, year: e.year, n: e.teams }))).filter(p => s1Year === "all" || p.year === s1Year);
+  pts.sort((a, b) => (a.code === "POR") - (b.code === "POR"));
+  pts.forEach((p, k) => {
+    const j = ((p.year * 7 + p.rank * 13) % 11 - 5) * 2.1, jx = ((p.year * 3) % 5 - 2) * 1.6, isP = p.code === "POR";
+    const c = el("circle", { cx: x(p.rank) + jx, cy: y(STAGE_IDX[p.stage_n]) + j, r: isP ? 7.5 : 6, class: "dot", fill: isP ? "var(--red)" : "var(--bar2)", "fill-opacity": isP ? 1 : .55, stroke: "#fff", "stroke-width": 2 }, s1);
+    if (!reduce && s1View === "dots") c.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 400, delay: Math.min(700, k * 3), fill: "backwards" });
+    hover(c, `<b>${p.team} ${p.year}</b><br>#${p.rank} of ${p.n} by value · ${eur(p.value)}<br>Reached: ${p.stage}`);
+  });
+  $("#s1legend").innerHTML = `<span><i style="background:var(--bar2);opacity:.6;border-radius:50%"></i>Squad</span><span><i style="background:var(--red);border-radius:50%"></i>Portugal</span>`;
+}
+function setS1(v){ s1View = v; $$("#s1tog button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v)); drawS1(); }
+$$("#s1tog button").forEach(b => b.onclick = () => { stopTour(); setS1(b.dataset.v); });
+["all", ...years].forEach(y => { const b = document.createElement("button"); b.className = "chip"; b.textContent = y === "all" ? "All years" : y; b.setAttribute("aria-pressed", y === s1Year);
+  b.onclick = () => { stopTour(); s1Year = y; $$("#s1years .chip").forEach(c => c.setAttribute("aria-pressed", c === b)); drawS1(); }; $("#s1years").appendChild(b); });
+onEnter.step1 = drawS1;
+
+/* ================= step 2 ================= */
+const M = D.model, fin = M.fits.final;
+onEnter.step2 = () => {
+  $("#stats3").innerHTML = `
+  <div class="stat"><b data-to="${M.spearman.rho}">0</b><span>Rank correlation between value rank and round reached</span><small>Spearman, ${M.spearman.n} squads, p &lt; 0.001</small></div>
+  <div class="stat"><b class="red">÷3</b><span>Each doubling of the value rank (#4 → #8) cuts the odds of reaching the final to about a third</span><small>Logistic regression, odds ratio ${fin.odds_per_doubling.toFixed(2)}, p &lt; 0.001</small></div>
+  <div class="stat"><b>${pct(D.bands[1].final, D.bands[1].n)}%</b><span>of squads ranked 5–8, Portugal's usual band, reached the final. Top 4: ${pct(D.bands[0].final, D.bands[0].n)}%</span><small>${D.bands[1].final} of ${D.bands[1].n} squads, 2006–2026</small></div>`;
+  $$("#stats3 .stat").forEach((s, i) => !reduce && s.animate([{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "none" }], { duration: 600, delay: 200 + i * 220, fill: "backwards", easing: "ease-out" }));
+  const b = $("#stats3 [data-to]"), to = +b.dataset.to, t0 = performance.now();
+  const step = t => { const p = reduce ? 1 : Math.min(1, (t - t0 - 300) / 1200); b.textContent = (to * Math.max(0, p)).toFixed(2).replace("-", "−"); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+};
+
+/* ================= bar charts ================= */
+function bars(sel, groups, opts){
+  const s = $(sel); s.innerHTML = "";
+  const [VW, VH] = s.getAttribute("viewBox").split(" ").slice(2).map(Number);
+  const mb = 50, mt = 34, plotH = VH - mb - mt, maxV = opts.max || 100, gw = VW / groups.length;
+  el("line", { x1: 0, x2: VW, y1: VH - mb, y2: VH - mb, class: "base" }, s);
+  groups.forEach((g, gi) => {
+    const n = g.bars.length, bw = Math.min(opts.bw || 90, (gw - 30) / n), gap = 4, start = gi * gw + (gw - (n * bw + (n - 1) * gap)) / 2;
+    g.bars.forEach((b, bi) => {
+      const h = Math.max(2, b.v / maxV * plotH), x = start + bi * (bw + gap), y = VH - mb - h, r = Math.min(4, bw / 2);
+      const p = el("path", { d: `M${x},${VH - mb} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${VH - mb} Z`, fill: b.color }, s);
+      const t = txt(s, x + bw / 2, y - 9, b.v + "%", { "text-anchor": "middle", class: "val" + (b.red ? " red" : "") });
+      if (!reduce) { p.style.transformBox = "view-box"; p.style.transformOrigin = `0 ${VH - mb}px`; p.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], { duration: 800, delay: 150 + gi * 120, easing: "cubic-bezier(.2,.7,.2,1)", fill: "backwards" }); t.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 750 + gi * 120, fill: "backwards" }); }
+      hover(el("rect", { x, y: mt - 12, width: bw, height: VH - mb - mt + 12, fill: "transparent" }, s), b.tip);
+    });
+    const lt = txt(s, gi * gw + gw / 2, VH - mb + 22, g.label, { "text-anchor": "middle", class: g.red ? "lbl-strong" : "" });
+    if (g.red) lt.setAttribute("style", "fill:var(--red)");
+    if (g.sub) txt(s, gi * gw + gw / 2, VH - mb + 39, g.sub, { "text-anchor": "middle", "font-size": 11.5 });
+  });
+}
+onEnter.step3 = () => bars("#lines", D.lines.map(l => ({ label: l.line, red: l.line === "Attack",
+  bars: [{ v: pct(...l.top5), color: l.line === "Attack" ? "var(--red)" : "var(--bar2)", red: l.line === "Attack", tip: `<b>${l.line} in top 5</b><br>${l.top5[0]} of ${l.top5[1]} reached the final` },
+         { v: pct(...l.other), color: "var(--bar)", tip: `<b>${l.line} not top 5</b><br>${l.other[0]} of ${l.other[1]} reached the final` }] })), { max: 40, bw: 92 });
+onEnter.step4 = () => bars("#porAttack", D.portugal_lines.map(p => ({ label: String(p.year), sub: `attack #${p.attack_rank}`, red: p.year === 2026,
+  bars: [{ v: Math.round(p.attack_share * 100), color: p.year === 2014 || p.year === 2026 ? "var(--red)" : "var(--bar)", red: p.year === 2014 || p.year === 2026,
+    tip: `<b>Portugal ${p.year}</b><br>Attack ${eur(p.FW)} · defence ${eur(p.DF)} · midfield ${eur(p.MF)}<br>Reached: ${p.stage}` }] })), { max: 60, bw: 110 });
+onEnter.ronaldoS = () => bars("#ronaldo", D.ronaldo.map(r => ({ label: String(r.year), sub: `#${r.rank} of ${r.of} in the squad`, red: r.year === 2014,
+  bars: [{ v: Math.round(r.share * 100), color: r.year === 2014 ? "var(--red)" : "var(--bar)", red: r.year === 2014,
+    tip: `<b>Ronaldo ${r.year}: ${eur(r.value)}</b><br>Top: ${r.top.map(t => `${t.name} ${eur(t.value)}`).join(", ")}` }] })), { max: 40, bw: 100 });
+const g1 = D.group["1"], g2 = D.group["2"], ip = D.knockouts.inplay, pe = D.knockouts.pens;
+onEnter.groupPens = () => {
+  bars("#groupQ", [{ label: "Won the group", red: true, bars: [{ v: pct(...g1), color: "var(--red)", red: true, tip: `<b>Group winners</b><br>${g1[0]} of ${g1[1]} reached the quarter-final` }] },
+                   { label: "Finished second", bars: [{ v: pct(...g2), color: "var(--bar)", tip: `<b>Runners-up</b><br>${g2[0]} of ${g2[1]} reached the quarter-final` }] }], { max: 100, bw: 130 });
+  bars("#pens", [{ label: "Decided in play", bars: [{ v: pct(...ip), color: "var(--bar2)", tip: `<b>90 or 120 minutes</b><br>Richer squad won ${ip[0]} of ${ip[1]}` }] },
+                 { label: "On penalties", red: true, bars: [{ v: pct(...pe), color: "var(--red)", red: true, tip: `<b>Penalty shoot-outs</b><br>Richer squad won ${pe[0]} of ${pe[1]}` }] }], { max: 100, bw: 130 });
+};
+onEnter.underS = () => {
+  $("#under").innerHTML = D.underdogs.map(u => `<div><span class="y">${u.year}</span><span><b>${u.team}</b> · #${u.rank} by value</span><span class="pill${u.shootout ? " so" : ""}">${u.stage}${u.shootout ? " · won on pens" : ""}</span></div>`).join("");
+  $$("#under div").forEach((d, i) => !reduce && d.animate([{ opacity: 0, transform: "translateX(-12px)" }, { opacity: 1, transform: "none" }], { duration: 450, delay: 150 + i * 110, fill: "backwards" }));
+};
+
+/* ================= tour ================= */
+function sleep(ms, ...tokens){ return new Promise(res => { const t0 = performance.now(); const tick = () => { if (tokens.some(t => t && t.cancel) || performance.now() - t0 >= ms) return res(); setTimeout(tick, 60); }; tick(); }); }
+const btn = $("#tour"), lbl = $("#tourTxt"), icon = $("#tourIcon");
+const ICON_DOWN = `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v9M2 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICON_PAUSE = `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg>`;
+let tour = null;
+const Q = 3600, CH = 6500;
+const SCRIPT = [
+  ["#q1", "Question 1", async t => sleep(Q, t)],
+  ["#worldcups", "Six World Cups", async t => { await sleep(600, t); await playYears(t); await sleep(600, t); }],
+  ["#q2", "Question 2", async t => sleep(Q, t)],
+  ["#method", "Data & method", async t => sleep(7000, t)],
+  ["#q3", "Question 3", async t => sleep(Q, t)],
+  ["#step1", "Step 1", async t => { setS1("dots"); await sleep(4500, t); setS1("bands"); await sleep(5000, t); setS1("model"); await sleep(6000, t); }],
+  ["#q4", "Question 4", async t => sleep(Q, t)],
+  ["#step2", "Step 2", async t => sleep(CH, t)],
+  ["#q5", "Question 5", async t => sleep(Q + 600, t)],
+  ["#step3", "Step 3", async t => sleep(CH, t)],
+  ["#q6", "Question 6", async t => sleep(Q, t)],
+  ["#step4", "Step 4", async t => sleep(CH, t)],
+  ["#q7", "Question 7", async t => sleep(Q, t)],
+  ["#ronaldoS", "Ronaldo", async t => sleep(CH, t)],
+  ["#q8", "Question 8", async t => sleep(Q, t)],
+  ["#groupPens", "Group and penalties", async t => sleep(CH + 1000, t)],
+  ["#q9", "Question 9", async t => sleep(Q, t)],
+  ["#underS", "Underdogs", async t => sleep(CH, t)],
+  ["#end", "The answer", async t => sleep(1500, t)],
+];
+async function startTour(){
+  stopPlay();
+  const token = { cancel: false }; tour = token;
+  btn.classList.add("playing"); btn.classList.remove("idle", "up"); icon.innerHTML = ICON_PAUSE;
+  const startAt = Math.max(0, SCRIPT.findIndex(([s]) => sceneTop($(s)) > scrollY + 5));
+  for (let i = startAt; i < SCRIPT.length; i++) {
+    if (token.cancel) return;
+    const [sel, name, run] = SCRIPT[i];
+    lbl.innerHTML = `Pause tour <span class="sub">${name} · ${i + 1}/${SCRIPT.length}</span>`;
+    await goTo(sel);
+    if (token.cancel) return;
+    await run(token);
+  }
+  if (tour === token) stopTour();
+}
+function stopTour(){ if (tour) { tour.cancel = true; tour = null; } btn.classList.remove("playing"); icon.innerHTML = ICON_DOWN; updateBtn(); }
+function nextScene(){ return scenes.find(s => sceneTop(s) > scrollY + 5); }
+function updateBtn(){
+  if (tour) return;
+  const n = nextScene();
+  btn.classList.toggle("up", !n); btn.classList.toggle("idle", scrollY < 40);
+  if (scrollY < 40) lbl.innerHTML = "Start the tour";
+  else if (!n) lbl.innerHTML = "Back to the start";
+  else lbl.innerHTML = `Play tour from here <span class="sub">or scroll</span>`;
+}
+btn.onclick = () => {
+  if (tour) return stopTour();
+  if (!nextScene()) { goTo("#top"); return; }
+  startTour();
+};
+addEventListener("scroll", updateBtn, { passive: true });
+// any manual input takes over from the tour
+["wheel", "touchstart", "keydown"].forEach(ev => addEventListener(ev, e => { if (tour && !(ev === "keydown" && (e.key === "Tab" || e.key === "Enter" || e.key === " "))) stopTour(); }, { passive: true }));
+updateBtn();
+})();
+</script>
+</body>
+</html>
