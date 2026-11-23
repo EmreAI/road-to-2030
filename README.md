@@ -1,5 +1,7 @@
 # Road to 2030: website
 
+Live: https://emreai.github.io/road-to-2030/
+
 Interactive overview of Team 14's Datathon analysis: knockout brackets 2006–2026 with squad value ranks, sources, pipeline, the four analysis steps and the board's likely questions.
 
 - `index.html`: the page (no build step; fonts from Google Fonts)
